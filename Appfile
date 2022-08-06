@@ -1,0 +1,9 @@
+app_identifier "com.youridentifier.firefox" # The bundle identifier of your app
+apple_id "yourappleaccount@mac.com" # Your Apple email address
+
+team_id "YOURTEAMID" # Developer Portal Team ID
+
+# itc_team_name "Company Name"
+# itc_team_id "18742801"
+
+...

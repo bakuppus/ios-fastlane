@@ -1,0 +1,121 @@
+name: Android CI
+
+on:
+  # Triggers the workflow on push or pull request events but only for default and protected branches
+  push:
+    #branches: [ main]
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+env:
+  APP_CENTER_APP_NAME: 'choptsalad/chopt-android-poc'
+  APPCENTER_API_TOKEN: ${{ secrets.APPCENTER_API_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+  GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}
+  #APK_PATH: '/home/runner/work/github-action-fastlane-android-chopt/github-action-fastlane-android-chopt/app/build/outputs/apk/staging/debug/app-staging-debug.apk'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+        with:
+        # Optionally strip `v` prefix
+          strip_v: true
+      - name: Use tag
+        run: |
+          #echo ${{steps.tag.outputs.tag}}
+          #export RELEASE_VERSION=${{steps.tag.outputs.tag}}   
+          echo "RELEASE_VERSION=${{steps.tag.outputs.tag}}" >> $GITHUB_ENV                
+        env: 
+          RELEASE_VERSION: ${{steps.tag.outputs.tag}} 
+
+      - name: echo Release version
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+
+      # Set Current Date As Env Variable
+      - name: Set current date as env variable
+        run: |
+          #sleep 300000
+          echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      # Set Repository Name As Env Variable
+      - name: Set repository name as env variable
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Change wrapper permissions
+        run: | 
+          touch ${GITHUB_WORKSPACE}/local.properties
+          chmod +x ./gradlew
+          ./gradlew -v
+
+      - name: Bump version
+        uses: chkfung/android-version-actions@v1.1
+        with:
+          gradlePath: app/build.gradle # or app/build.gradle.kts 
+          #versionCode: ${{github.run_number}}
+          versionName: ${{ env.RELEASE_VERSION }}
+
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7.2'
+
+      - name: Fastlane 
+        uses: maierj/fastlane-action@v2.2.0
+        with:
+          lane: 'beta'
+
+      # Run clean  
+      #- name: Run gradle clean
+      #  run: ./gradlew clean 
+
+      # Run Build Project
+      #- name: Build gradle project
+      #  run: ./gradlew build 
+
+      # Create APK Debug
+      #- name: Build apk debug project (APK) - ${{ env.main_project_module }} module
+      #  run: ./gradlew assemblestagingDebug
+
+      # Create APK Release
+      #- name: Build apk release project (APK) - ${{ env.main_project_module }} module
+      #  run: ./gradlew assemble
+
+
+
+      #- name: upload artifact to App Center
+      #  if: success()
+      #  uses: wzieba/AppCenter-Github-Action@v1
+      #  with:
+      #    appName: choptsalad/chopt-android-poc
+      #    token: ${{env.APPCENTER_TOKEN}}
+      #    group: Testers
+      #    file: '/home/runner/work/github-action-fastlane-android-chopt/github-action-fastlane-android-chopt/app/build/outputs/apk/staging/debug/app-staging-debug.apk'
+      #    notifyTesters: true
+      #    debug: false
+          #buildVersion: '1.2.3'
+          #buildNumber: '1'
+
+      #- name: run any App Center CLI command
+      #  uses:  avocaddo/AppCenter-Github-Action@v1.0.2
+      #  with:
+      #    command: appcenter distribute release -f '/home/runner/work/github-action-fastlane-android-chopt/github-action-fastlane-android-chopt/app/build/outputs/apk/staging/debug/app-staging-debug.apk'  -r releaseNote -g Testers  -n 10 -b v5.3.2 -a user/app
+      #    token: ${{secrets.APP_CENTER_TOKEN}}
+
+
+
